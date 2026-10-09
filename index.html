@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>객가 교육부 로마자 → 한글 변환기 (Hakkul)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --indigo-deep: #1a2f4a;
+            --indigo-mid: #2a4a6b;
+            --indigo-soft: #3d6a8f;
+            --cream: #f5f0e6;
+            --cream-dark: #e8e0d0;
+            --ink: #1c2a3a;
+            --accent: #c45c26;
+        }
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+            background-color: var(--cream);
+            color: var(--ink);
+        }
+        .font-serif-kr { font-family: 'Noto Serif KR', serif; }
+        .bg-hakka-indigo { background-color: var(--indigo-deep); }
+        .text-hakka-indigo { color: var(--indigo-deep); }
+        .border-hakka-indigo { border-color: var(--indigo-deep); }
+        .bg-hakka-cream { background-color: var(--cream); }
+        /* 객가 남염(藍染) 감성 – 인디고 염직 패턴 */
+        .hakka-pattern-bg {
+            background-color: #f3eee4;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(26,47,74,0.04) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(26,47,74,0.03) 0%, transparent 45%),
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 12px,
+                    rgba(26,47,74,0.015) 12px,
+                    rgba(26,47,74,0.015) 13px
+                );
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #efe9dc; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #a8b8c8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #7a93a8; }
+        .indigo-gradient {
+            background: linear-gradient(135deg, #1a2f4a 0%, #2a4a6b 60%, #1a2f4a 100%);
+        }
+        /* 호버 음절 하이라이트 */
+        .syl-unit {
+            cursor: default;
+            border-radius: 0.25rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .syl-unit:hover, .syl-unit.tip-active {
+            background: #f5e6d3;
+            color: #1a2f4a;
+        }
+        /* 고정 위치 팝업 (출력영역 overflow에 잘리지 않음) */
+        #float-tip {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            min-width: 14rem;
+            max-width: 22rem;
+            padding: 0.7rem 0.9rem;
+            background: #1a2f4a;
+            color: #f0ebe0;
+            font-size: 0.72rem;
+            font-family: ui-monospace, monospace;
+            line-height: 1.5;
+            border-radius: 0.65rem;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+            pointer-events: none;
+            text-align: left;
+        }
+        #float-tip.tip-visible { display: block; }
+        #float-tip .tip-row { display: flex; justify-content: space-between; gap: 0.75rem; }
+        #float-tip .tip-k { color: #a8b8c8; flex-shrink: 0; }
+        #float-tip .tip-v { color: #fff; text-align: right; word-break: break-all; }
+        #float-tip .tip-hangul { font-family: 'Noto Serif KR', serif; font-size: 1.15rem; font-weight: 700; text-align: center; margin-bottom: 0.4rem; color: #f5e6d3; }
+        #float-tip .tip-arrow {
+            position: absolute;
+            width: 0; height: 0;
+            border: 7px solid transparent;
+        }
+        #float-tip.tip-above .tip-arrow {
+            top: 100%; left: var(--arrow-x, 50%);
+            margin-left: -7px;
+            border-top-color: #1a2f4a;
+        }
+        #float-tip.tip-below .tip-arrow {
+            bottom: 100%; left: var(--arrow-x, 50%);
+            margin-left: -7px;
+            border-bottom-color: #1a2f4a;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between hakka-pattern-bg antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+    <!-- Header – 남염 인디고 -->
+    <header class="indigo-gradient text-white shadow-lg relative overflow-hidden border-b-4 border-[#c45c26]">
+        <div class="absolute right-0 top-0 bottom-0 opacity-[0.07] pointer-events-none flex items-center pr-8">
+            <svg class="w-72 h-72 text-white" viewBox="0 0 100 100" fill="currentColor">
+                <path d="M50 0 L100 50 L50 100 L0 50 Z M50 18 L82 50 L50 82 L18 50 Z"/>
+                <circle cx="50" cy="50" r="12"/>
+            </svg>
+        </div>
+        <div class="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8 relative z-10">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-[#c45c26] text-white uppercase tracking-wider">MOE Hakka ↔ Hangul</span>
+                        <span class="text-xs text-indigo-200 font-serif-kr">臺灣客家語拼音方案 · 학글</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-bold font-serif-kr tracking-tight mt-1">
+                        객가 교육부 로마자 → 한글 변환기
+                    </h1>
+                    <p class="text-sm text-indigo-200/90 mt-1">
+                        대만 교육부 객가어 표기법(Hakka MOE)을 학글(Hakkul) 규칙에 따라 옛한글/완성형 한글로 자동 변환합니다.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleModal('modal-guide')" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg bg-white/10 hover:bg-white/20 text-white transition shadow-sm border border-white/20">
+                        <i class="fa-solid fa-book-open"></i>
+                        <span>변환 규칙 안내</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8 flex-grow w-full">
+
+        <!-- 입력 방식 + 예시 -->
+        <div class="mb-6 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-[#d4cbb8] space-y-3">
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+                <span class="font-semibold text-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-right-left text-[#c45c26]"></i> 입력 방식:
+                </span>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg border border-[#d4cbb8] bg-[#faf7f0] hover:bg-indigo-50">
+                    <input type="radio" name="inputScheme" value="auto" checked onchange="onSchemeChange()" class="text-indigo-600 focus:ring-indigo-500">
+                    <span class="font-medium">자동 감지</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg border border-[#d4cbb8] bg-[#faf7f0] hover:bg-indigo-50">
+                    <input type="radio" name="inputScheme" value="moe" onchange="onSchemeChange()" class="text-indigo-600 focus:ring-indigo-500">
+                    <span class="font-medium">교육부 (MoE)</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg border border-[#d4cbb8] bg-[#faf7f0] hover:bg-indigo-50">
+                    <input type="radio" name="inputScheme" value="pfs" onchange="onSchemeChange()" class="text-indigo-600 focus:ring-indigo-500">
+                    <span class="font-medium">교회 (PFS)</span>
+                </label>
+                <span id="scheme-detect-label" class="text-xs text-slate-500">자동: 교회식 특징(â, chh, - 등)을 감지합니다.</span>
+            </div>
+            <div id="examples-moe" class="flex flex-wrap items-center gap-2 text-sm">
+                <span class="font-semibold text-slate-700 flex items-center gap-1.5 mr-1">
+                    <i class="fa-solid fa-lightbulb text-[#c45c26]"></i> 예시 (교육부):
+                </span>
+                <button onclick="setSample('taiˋ gaˊ hoˊ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">taiˋ gaˊ hoˊ</button>
+                <button onclick="setSample('hakˋ kaˊ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">hakˋ kaˊ</button>
+                <button onclick="setSample('ngaiˋ oiˊ ngiˊ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">ngaiˋ oiˊ ngiˊ</button>
+                <button onclick="setSample('tiamˇ banˋ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">tiamˇ banˋ</button>
+                <button onclick="setSample('kiongˊ hiˊ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">kiongˊ hiˊ</button>
+                <button onclick="setSample('fanˇ shuˋ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">fanˇ shuˋ</button>
+                <button onclick="setSample('chongˊ siiˋ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">chongˊ siiˋ</button>
+                <button onclick="setSample('bagˋ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">bagˋ</button>
+            </div>
+            <div id="examples-pfs" class="flex flex-wrap items-center gap-2 text-sm hidden">
+                <span class="font-semibold text-slate-700 flex items-center gap-1.5 mr-1">
+                    <i class="fa-solid fa-lightbulb text-[#c45c26]"></i> 예시 (교회 로마자):
+                </span>
+                <button onclick="setSample('thai-kâ ho')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">thai-kâ ho</button>
+                <button onclick="setSample('hak-kâ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">hak-kâ</button>
+                <button onclick="setSample('ngài oi ngî')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">ngài oi ngî</button>
+                <button onclick="setSample('thiàm-pán')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">thiàm-pán</button>
+                <button onclick="setSample('kiong-hí')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">kiong-hí</button>
+                <button onclick="setSample('fàn-sû')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">fàn-sû</button>
+                <button onclick="setSample('chhóng-sṳ')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">chhóng-sṳ</button>
+                <button onclick="setSample('pak')" class="px-3 py-1 rounded-full bg-[#f0ebe0] hover:bg-indigo-50 hover:text-hakka-indigo text-slate-700 text-xs font-medium border border-[#d4cbb8] transition">pak</button>
+            </div>
+            <div id="moe-intermediate" class="hidden text-xs font-mono text-slate-600 bg-[#f5f0e6] px-3 py-2 rounded-lg border border-[#d4cbb8]">
+                <span class="font-semibold text-slate-700">교육부 중간 변환:</span>
+                <span id="moe-intermediate-text" class="ml-2 text-indigo-800"></span>
+            </div>
+        </div>
+
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- Input -->
+            <div class="bg-white/95 rounded-2xl shadow-md border border-[#d4cbb8] overflow-hidden flex flex-col">
+                <div class="bg-[#f0ebe0] border-b border-[#d4cbb8] px-5 py-3.5 flex items-center justify-between">
+                    <label for="input-rom" class="font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-keyboard text-hakka-indigo"></i>
+                        <span>객가어 교육부 로마자 입력</span>
+                    </label>
+                    <button onclick="clearInput()" class="text-xs font-medium text-slate-500 hover:text-rose-600 transition flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> 지우기
+                    </button>
+                </div>
+                <div class="p-5 flex-grow flex flex-col gap-3">
+                    <textarea id="input-rom"
+                        class="w-full h-48 p-4 rounded-xl border border-[#d4cbb8] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base font-mono leading-relaxed resize-none transition bg-[#faf7f0]"
+                        placeholder="교육부: taiˋ gaˊ hoˊ  ·  교회: thai-kâ ho"></textarea>
+
+                    <!-- 성조 키보드 (교육부식) -->
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span class="text-xs font-semibold text-slate-600 mr-1">성조:</span>
+                        <button type="button" onclick="insertTone('ˊ')" class="w-8 h-8 rounded-md bg-[#e8e0d0] hover:bg-indigo-100 text-sm font-mono border border-[#d4cbb8] transition" title="양평 / 상성 계열">ˊ</button>
+                        <button type="button" onclick="insertTone('ˇ')" class="w-8 h-8 rounded-md bg-[#e8e0d0] hover:bg-indigo-100 text-sm font-mono border border-[#d4cbb8] transition" title="양평 / 상성">ˇ</button>
+                        <button type="button" onclick="insertTone('ˋ')" class="w-8 h-8 rounded-md bg-[#e8e0d0] hover:bg-indigo-100 text-sm font-mono border border-[#d4cbb8] transition" title="거성 / 음평">ˋ</button>
+                        <button type="button" onclick="insertTone('ˉ')" class="w-8 h-8 rounded-md bg-[#e8e0d0] hover:bg-indigo-100 text-sm font-mono border border-[#d4cbb8] transition" title="음평 / 거성">ˉ</button>
+                        <button type="button" onclick="insertTone('ˆ')" class="w-8 h-8 rounded-md bg-[#e8e0d0] hover:bg-indigo-100 text-sm font-mono border border-[#d4cbb8] transition" title="입성 계열">ˆ</button>
+                        <button type="button" onclick="insertTone('⁺')" class="w-8 h-8 rounded-md bg-[#e8e0d0] hover:bg-indigo-100 text-sm font-mono border border-[#d4cbb8] transition" title="해륙 특수">⁺</button>
+                        <button type="button" onclick="insertTone('+')" class="w-8 h-8 rounded-md bg-[#e8e0d0] hover:bg-indigo-100 text-sm font-mono border border-[#d4cbb8] transition" title="+">+</button>
+                        <span class="text-xs text-slate-400 ml-2">클릭 시 커서 위치에 삽입</span>
+                    </div>
+
+                    <div class="text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#e8e0d0]">
+                        <span><i class="fa-solid fa-circle-info text-indigo-500"></i> 교육부 종성 <strong>b d g m n ng</strong> · 교회식 종성 <strong>p t k</strong>(→b/d/g) · 패턴 외는 원문 유지</span>
+                        <span id="input-char-count" class="font-mono text-slate-400">0자</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Output – 복사 버튼 위쪽 -->
+            <div class="bg-white/95 rounded-2xl shadow-md border border-[#d4cbb8] overflow-hidden flex flex-col">
+                <div class="bg-[#f0ebe0] border-b border-[#d4cbb8] px-5 py-3 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-language text-[#c45c26]"></i>
+                            <span>한글 변환 결과</span>
+                        </span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+                            완성형 / 첫가끝 자동
+                        </span>
+                    </div>
+                    <button id="btn-copy" onclick="copyOutput()"
+                        class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold text-white bg-hakka-indigo hover:bg-[#2a4a6b] active:scale-95 transition shadow-sm">
+                        <i class="fa-solid fa-copy"></i>
+                        <span id="copy-text">복사</span>
+                    </button>
+                </div>
+                <div class="p-5 flex-grow flex flex-col">
+                    <div id="output-hangul"
+                        class="w-full h-56 p-4 rounded-xl border border-[#d4cbb8] bg-[#f5f0e6]/60 font-serif-kr text-2xl sm:text-3xl font-bold leading-relaxed overflow-y-auto whitespace-pre-wrap select-all text-slate-900">
+                        <span class="text-slate-400 font-sans text-base font-normal italic">입력란에 객가어 로마자를 입력하시면 여기에 한글 변환 결과가 실시간으로 표시됩니다.</span>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-[#e8e0d0] flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-slate-700">방언:</span>
+                                <label class="inline-flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="dialect" value="sixian" checked onchange="handleModeChange()" class="text-indigo-600 focus:ring-indigo-500">
+                                    <span>사현</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="dialect" value="hailu" onchange="handleModeChange()" class="text-indigo-600 focus:ring-indigo-500">
+                                    <span>해륙</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-slate-700">표시:</span>
+                                <label class="inline-flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="displayMode" value="auto" checked onchange="handleModeChange()" class="text-indigo-600 focus:ring-indigo-500">
+                                    <span>자동</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1 cursor-pointer">
+                                    <input type="radio" name="displayMode" value="modern" onchange="handleModeChange()" class="text-indigo-600 focus:ring-indigo-500">
+                                    <span>현대 근사</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 text-[#8b5a2b] bg-[#f5e6d3] px-2 py-1 rounded border border-[#e0c9a8]">
+                            <i class="fa-solid fa-font"></i>
+                            <span>옛한글 지원 폰트 권장</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hint -->
+        <div class="mt-6 text-center text-sm text-slate-500">
+            <i class="fa-solid fa-arrow-pointer text-hakka-indigo mr-1"></i>
+            변환된 한글 음절 위에 <strong>1초</strong> 올려두면 원본 로마자와 변환 단계가 표시됩니다 · 패턴 외(외국어 등)는 원문 유지 · 교회식 하이픈은 붙여 씀
+        </div>
+    </main>
+
+    <!-- 고정 위치 호버 팝업 (출력영역 overflow에 잘리지 않음) -->
+    <div id="float-tip" role="tooltip"><div class="tip-arrow"></div><div id="float-tip-body"></div></div>
+
+    <footer class="bg-[#1a2f4a] text-indigo-200/70 py-6 border-t border-[#2a4a6b] text-xs">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+                <p class="font-medium text-indigo-100">객가 교육부 로마자 → 한글 변환 시스템 (Hakkul Engine)</p>
+                <p class="mt-0.5">臺灣客家語拼音方案 · 학글(Hakkul) · 남염(藍染) 디자인</p>
+            </div>
+            <div class="text-right">
+                <p>옛한글 없으면 완성형(U+AC00), 있으면 첫가끝(U+1100)</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Guide Modal -->
+    <div id="modal-guide" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-[#d4cbb8]">
+            <div class="indigo-gradient text-white px-6 py-4 flex items-center justify-between border-b border-[#c45c26]">
+                <h3 class="text-lg font-bold font-serif-kr flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-[#f0c080]"></i>
+                    학글(Hakkul) 변환 규칙 안내
+                </h3>
+                <button onclick="toggleModal('modal-guide')" class="text-indigo-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-5 text-sm text-slate-700 leading-relaxed">
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2">입력 방식</h4>
+                    <p><strong>자동 감지</strong>: â, chh, 하이픈, p/t/k 받침 등 교회식 특징을 실시간 감지<br>
+                    <strong>교육부 (MoE)</strong>: 臺灣客家語拼音方案 그대로 입력<br>
+                    <strong>교회 (PFS)</strong>: Pha̍k-fa-sṳ → 교육부식 변환 후 한글 파이프라인<br>
+                    예: <code>thai-kâ</code> → <code>taiˋgaˊ</code>(하이픈 붙여 씀) → 한글<br>
+                    교회 <code>o[a|e]</code> = 교육부 <code>u[a|e]</code> · 교회 종성 p/t/k → b/d/g</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2">3단계 파이프라인</h4>
+                    <ol class="list-decimal pl-5 space-y-1 font-mono text-xs bg-[#f5f0e6] p-3 rounded-lg border border-[#d4cbb8]">
+                        <li><strong>vars</strong> : 로마자 → 키릴 중간 표기 (환경 {} 반영, 긴 것 우선)</li>
+                        <li><strong>rewrite</strong> : 음운 재쓰기 · <code>[к|г]вє[к|т]→[к|г]ўи[к|т]</code></li>
+                        <li><strong>transcribe</strong> : 키릴 → 한글 초·중·종성 후 합성</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2">음절말 자음 규칙</h4>
+                    <p>교육부 종성: <strong>b d g m n ng</strong> · 교회식 종성: <strong>p t k</strong>(내부적으로 b/d/g로 정규화).<br>
+                    허용 음절 구조(СГ, СГС, Г, СПГ, СПГС, ПГ) 외의 패턴(외국어 등)은 변환하지 않고 원문 그대로 둡니다.<br>
+
+                    모음 뒤에 나온 일반 자음이 초성을 덮어쓰지 않습니다. (예: sat → 사, bul → 부)</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2">음절 자음 (m n ng)</h4>
+                    <p>앞에 모음이 없으면 <strong>М → 모, Н → 니, Ң → ᅌᅩ</strong> 로 변환됩니다.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2">r / rh / f / v 처리</h4>
+                    <p><code>rh → ж → й</code>, <code>r → 〻 → њ (ㅿ)</code>, <code>Ж → њ</code><br>
+                    <code>фи → пуй</code>, <code>ф/@ → пў</code>, <code>ви → уй</code>, <code>в/@ → ў</code></p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2">성조 · 경음화 (방언 선택)</h4>
+                    <p><strong>사현</strong>: ˊ/ˇ → (무), ˋ → 〯, ˉ → 〮 · 경음: ˇ+(개방/비음), ˉ+(입성)<br>
+                    <strong>해륙</strong>: ˋ/ˉ → (무), ˊ → 〯, ˇ/⁺ → 〮 · 경음: (ˉ|⁺)+(개방/비음), ˋ+(입성)</p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 mb-2">옛한글 자모</h4>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+                        <div class="p-2 bg-[#f5f0e6] rounded border">ㆁ ng</div>
+                        <div class="p-2 bg-[#f5f0e6] rounded border">ㅿ ngi / r</div>
+                        <div class="p-2 bg-[#f5f0e6] rounded border">ㆍ 아래아</div>
+                        <div class="p-2 bg-[#f5f0e6] rounded border">ᄾ sh</div>
+                        <div class="p-2 bg-[#f5f0e6] rounded border">ᅐ zh</div>
+                        <div class="p-2 bg-[#f5f0e6] rounded border">ᅕ ch</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-[#f0ebe0] px-6 py-3 border-t border-[#d4cbb8] text-right">
+                <button onclick="toggleModal('modal-guide')" class="px-4 py-2 bg-hakka-indigo text-white rounded-lg text-sm font-medium hover:bg-[#2a4a6b] transition">확인</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// ============================================================
+// Hakkul Engine v2 – 음절말 bdg 보호, r/rh 갱신, 음절자음 보강
+// ============================================================
+
+const CS = "пфтквкхцђчсшбмвднлгңѕџћњщжй〻ПТКЦЋЧСЩШ"; // expanded for fortis
+const VOWELS = "аєиоуүы";
+
+// ---------- Stage 1: vars ----------
+const STAGE1_VARS = [
+    // Codas first (longest / explicit)
+    { target: "ng,", replacement: "ң," },
+    { target: "b,",  replacement: "п," },
+    { target: "d,",  replacement: "т," },
+    { target: "g,",  replacement: "к," },
+    { target: "m,",  replacement: "м," },
+    { target: "n,",  replacement: "н," },
+
+    // Contextual onsets
+    { target: "ngu", post: "[aeio]", replacement: "ңв" },
+    { target: "ng",  post: "i",      replacement: "њ" },
+    { target: "ng",  replacement: "ң" },
+    { target: "gu",  post: "[aeio]", replacement: "гв" },
+    { target: "g",   replacement: "г" },
+    { target: "ku",  post: "[aeio]", replacement: "кв" },
+    // 교회식 유기음 성모 (kh/th/ph) — MoE 입력·혼합 입력 모두 허용
+    { target: "kh",  replacement: "к" },
+    { target: "th",  replacement: "т" },
+    { target: "ph",  replacement: "п" },
+    { target: "chh", replacement: "ц" },
+    { target: "tsh", replacement: "ц" },
+    { target: "k",   replacement: "к" },
+    { target: "h",   replacement: "х" },
+
+    { target: "zh",  replacement: "џ" },
+    { target: "ch",  replacement: "ч" },
+    { target: "sh",  replacement: "ш" },
+    { target: "rh",  replacement: "ж" },
+    { target: "b",   replacement: "б" },
+    { target: "p",   replacement: "п" },
+    { target: "m",   replacement: "м" },
+    { target: "f",   replacement: "ф" },
+    { target: "v",   replacement: "в" },
+    { target: "d",   replacement: "д" },
+    { target: "t",   replacement: "т" },
+    { target: "n",   replacement: "н" },
+    { target: "l",   replacement: "л" },
+    { target: "z",   replacement: "ѕ" },
+    { target: "j",   replacement: "ђ" },
+    { target: "c",   replacement: "ц" },
+    { target: "q",   replacement: "ћ" },
+    { target: "s",   replacement: "с" },
+    { target: "x",   replacement: "щ" },
+    { target: "r",   replacement: "Ж" },   // r → Ж
+    { target: "y",   replacement: "й" },
+
+    // Glides / triphthongs (긴 것 우선)
+    { target: "ieu", replacement: "йєў" },  // ieu → йєў → (rewrite) йу
+    { target: "iau", replacement: "йаў" },  // iau → йаў → (rewrite) йо
+    { target: "ioi", replacement: "йой" },
+    { target: "iu",  replacement: "йу" },
+    { target: "ui",  replacement: "ўи" },  // ui → ўи
+    { target: "i",   post: "[aeou]", replacement: "й" },
+    { target: "u",   post: "[aeio]", replacement: "ў" },
+    { target: "i",   pre: "[aeou]",  replacement: "й" },
+    { target: "u",   pre: "[aeo]",   replacement: "ў" },  // note: {a|e|o}u (no i)
+    { target: "ü",   post: "[aeo]",  replacement: "ҩ" },
+
+    { target: "ii",  replacement: "ы" },
+    { target: "ee",  replacement: "є̂" },
+    { target: "oo",  replacement: "о̂" },
+
+    { target: "a",   replacement: "а" },
+    { target: "e",   replacement: "є" },
+    { target: "i",   replacement: "и" },
+    { target: "o",   replacement: "о" },
+    { target: "u",   replacement: "у" },
+    { target: "ü",   replacement: "ү" }
+];
+
+// ---------- Stage 2: rewrite ----------
+const STAGE2_REWRITE = [
+    // f / v 규칙 (긴 것·구체적 것 우선)
+    { target: "фи",  replacement: "пуй" },
+    { target: "ви",  replacement: "уй" },
+    { target: "вєк", replacement: "ўик;" },  // вєк → ўик
+    { target: "ф",   post: "[ўу]",          replacement: "п" },
+    { target: "в",   post: "[ўу]",          replacement: "ў" },
+    { target: "ф",   post: "[аєиоуүы]",     replacement: "пў" },
+    { target: "в",   post: "[аєиоуүы]",     replacement: "ў" },
+
+    // r / rh
+    { target: "ж",   replacement: "й" },
+    { target: "Ж",   replacement: "њ" },
+
+    // 긴 연쇄 우선: гвє[т|к] 한 번에 처리
+    // (гв→гў 직후 같은 패스에서 є→ы→ъ 되어 ᄀᆞᆯ 되던 오류 방지)
+    { target: "гвє", post: "[тк]", replacement: "гўи;" },
+    { target: "квє", post: "[тк]", replacement: "кўи;" },
+    { target: "ңвє", post: "[тк]", replacement: "ңўи;" },
+    { target: "гв",  replacement: "гў" },
+    { target: "кв",  replacement: "кў" },
+    { target: "ңв",  replacement: "ңў" },
+
+    // Vowel rewrites (with prevention ; ) – longest / specific first
+    { target: "йаў", replacement: "йо;" },
+    { target: "йа",  post: "[ктпңнм]",      replacement: "йє;" },
+    { target: "аў",  replacement: "о;" },
+    { target: "а",   post: "[кң]",          replacement: "ъй;" },
+    { target: "йєў", replacement: "йу;" },
+    // 열린 음절(받침 없음) 전용: target 끝의 , 는 음절 끝(EOL) 의미
+    { target: "йє",  eol: true,             replacement: "йєй;" },
+    { target: "йє",  replacement: "йє;" },
+    { target: "ўєй", replacement: "ой;" },
+    { target: "ўє",  eol: true,             replacement: "ўєй;" },
+    { target: "ўє",  post: "[нң]",          replacement: "ҩє;" },
+    // [к|г]вє[к|т] → [к|г]ўи[к|т]  (гв→гў 연쇄 후)
+    { target: "ўє",  post: "[тк]",          replacement: "ўи;" },
+    { target: "ҩє",  eol: true,             replacement: "ҩєй;" },
+    { target: "єў",  replacement: "у;" },
+    { target: "є",   eol: true,             replacement: "єй;" },
+    { target: "є",   post: "[ктпңнм]",      replacement: "ы;" },
+    { target: "йой", replacement: "ҩєй;" },
+    { target: "йоў", replacement: "йу;" },
+    { target: "йо",  post: "[тн]",          replacement: "ҩє;" },
+    { target: "йо",  post: "[кң]",          replacement: "йа;" },
+    { target: "ўо",  replacement: "ўа;" },
+    { target: "ой",  replacement: "ъй;" },
+    { target: "оў",  replacement: "у;" },
+    { target: "о",   post: "[тн]",          replacement: "ўа;" },
+    { target: "о",   post: "[кң]",          replacement: "а;" },
+    { target: "ҩо",  eol: true,             replacement: "ҩєй;" },
+    { target: "ҩо",  replacement: "ҩє;" },
+    { target: "у",   post: "[йткнң]",       replacement: "о;" },
+    { target: "ы",   replacement: "ъ;" },
+    { target: "ү",   post: "[тн]",          replacement: "йу;" },
+    { target: "ү",   eol: true,             replacement: "йуй;" },
+    { target: "ү,",  replacement: "йуй;" },
+
+    // Syllabic m/n/ng after consonant
+    { target: "м,",  pre: "[" + CS + "]",   replacement: "М" },
+    { target: "н,",  pre: "[" + CS + "]",   replacement: "Н" },
+    { target: "ң,",  pre: "[" + CS + "]",   replacement: "Ң" }
+];
+
+// ---------- Stage 3: transcribe ----------
+const STAGE3_TRANSCRIBE = [
+    // Codas
+    { target: "п,", type: "coda", hangul: "ㅂ" },
+    { target: "т,", type: "coda", hangul: "ㄹ" },
+    { target: "к,", type: "coda", hangul: "ㄱ" },
+    { target: "м,", type: "coda", hangul: "ㅁ" },
+    { target: "н,", type: "coda", hangul: "ㄴ" },
+    { target: "ң,", type: "coda", hangul: "ㅇ" },
+
+    // Onsets (incl. fortis)
+    { target: "б",  type: "onset", hangul: "ㅂ" },
+    { target: "п",  type: "onset", hangul: "ㅍ" },
+    { target: "П",  type: "onset", hangul: "ㅃ" },
+    { target: "м",  type: "onset", hangul: "ㅁ" },
+    { target: "д",  type: "onset", hangul: "ㄷ" },
+    { target: "т",  type: "onset", hangul: "ㅌ" },
+    { target: "Т",  type: "onset", hangul: "ㄸ" },
+    { target: "н",  type: "onset", hangul: "ㄴ" },
+    { target: "л",  type: "onset", hangul: "ㄹ" },
+    { target: "г",  type: "onset", hangul: "ㄱ" },
+    { target: "к",  type: "onset", hangul: "ㅋ" },
+    { target: "К",  type: "onset", hangul: "ㄲ" },
+    { target: "ң",  type: "onset", hangul: "ㆁ" },
+    { target: "х",  type: "onset", hangul: "ㅎ" },
+    { target: "ѕ",  type: "onset", hangul: "ㅈ" },
+    { target: "ђ",  type: "onset", hangul: "ㅈ" },
+    { target: "џ",  type: "onset", hangul: "ᅐ" },
+    { target: "ц",  type: "onset", hangul: "ㅊ" },
+    { target: "ћ",  type: "onset", hangul: "ㅊ" },
+    { target: "ч",  type: "onset", hangul: "ᅕ" },
+    { target: "Ц",  type: "onset", hangul: "ㅉ" },
+    { target: "Ћ",  type: "onset", hangul: "ㅉ" },
+    { target: "Ч",  type: "onset", hangul: "ᅑ" },
+    { target: "њ",  type: "onset", hangul: "ㅿ" },
+    { target: "с",  type: "onset", hangul: "ㅅ" },
+    { target: "С",  type: "onset", hangul: "ㅆ" },
+    { target: "щ",  type: "onset", hangul: "ㅅ" },
+    { target: "Щ",  type: "onset", hangul: "ㅆ" },
+    { target: "ш",  type: "onset", hangul: "ᄾ" },
+    { target: "Ш",  type: "onset", hangul: "ᄿ" },
+
+    // Vowels (complex first)
+    { target: "ўай", type: "vowel", hangul: "ㅙ" },
+    { target: "ўа",  type: "vowel", hangul: "ㅘ" },
+    { target: "ўєй", type: "vowel", hangul: "ㅞ" },
+    { target: "ўє",  type: "vowel", hangul: "ㅝ" },
+    { target: "ҩєй", type: "vowel", hangul: "ㆋ" },
+    { target: "ҩє",  type: "vowel", hangul: "ㆊ" },
+    { target: "йай", type: "vowel", hangul: "ㅒ" },
+    { target: "ай",  type: "vowel", hangul: "ㅐ" },
+    { target: "йа",  type: "vowel", hangul: "ㅑ" },
+    { target: "йєй", type: "vowel", hangul: "ㅖ" },
+    { target: "єй",  type: "vowel", hangul: "ㅔ" },
+    { target: "йє",  type: "vowel", hangul: "ㅕ" },
+    { target: "йой", type: "vowel", hangul: "ㆉ" },
+    { target: "йуй", type: "vowel", hangul: "ㆌ" },
+    { target: "йо",  type: "vowel", hangul: "ㅛ" },
+    { target: "ой",  type: "vowel", hangul: "ㅚ" },
+    { target: "йу",  type: "vowel", hangul: "ㅠ" },
+    { target: "ўи",  type: "vowel", hangul: "ㅟ" },  // ui → ўи → ㅟ
+    { target: "уй",  type: "vowel", hangul: "ㅟ" },
+    { target: "ъй",  type: "vowel", hangul: "ㆎ" },
+
+    { target: "а", type: "vowel", hangul: "ㅏ" },
+    { target: "є", type: "vowel", hangul: "ㅓ" },
+    { target: "о", type: "vowel", hangul: "ㅗ" },
+    { target: "у", type: "vowel", hangul: "ㅜ" },
+    { target: "ъ", type: "vowel", hangul: "ㆍ" },
+    { target: "ы", type: "vowel", hangul: "ㅡ" },
+    { target: "и", type: "vowel", hangul: "ㅣ" },
+
+    // Syllabic
+    { target: "М", type: "syllabic", hangul: "모" },
+    { target: "Н", type: "syllabic", hangul: "니" },
+    { target: "Ң", type: "syllabic", hangul: "ᅌᅩ" }
+];
+
+// Modern composition tables
+const MODERN_CHO  = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const MODERN_JUNG = ["ㅏ","ㅐ","ㅑ","ㅒ","ㅓ","ㅔ","ㅕ","ㅖ","ㅗ","ㅘ","ㅙ","ㅚ","ㅛ","ㅜ","ㅝ","ㅞ","ㅟ","ㅠ","ㅡ","ㅢ","ㅣ"];
+const MODERN_JONG = ["","ㄱ","ㄲ","ㄳ","ㄴ","ㄵ","ㄶ","ㄷ","ㄹ","ㄺ","ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+
+// Correct U+1100 maps
+const CHO_U1100 = {
+    "ㄱ":"\u1100","ㄲ":"\u1101","ㄴ":"\u1102","ㄷ":"\u1103","ㄸ":"\u1104",
+    "ㄹ":"\u1105","ㅁ":"\u1106","ㅂ":"\u1107","ㅃ":"\u1108","ㅅ":"\u1109",
+    "ㅆ":"\u110A","ㅇ":"\u110B","ㅈ":"\u110C","ㅉ":"\u110D","ㅊ":"\u110E",
+    "ㅋ":"\u110F","ㅌ":"\u1110","ㅍ":"\u1111","ㅎ":"\u1112",
+    "ㅿ":"\u1140","ㆁ":"\u114C","ᄾ":"\u113E","ᅐ":"\u1150","ᅕ":"\u1155","ᅑ":"\u1151","ᄿ":"\u113F"
+};
+const JUNG_U1100 = {
+    "ㅏ":"\u1161","ㅐ":"\u1162","ㅑ":"\u1163","ㅒ":"\u1164","ㅓ":"\u1165",
+    "ㅔ":"\u1166","ㅕ":"\u1167","ㅖ":"\u1168","ㅗ":"\u1169","ㅘ":"\u116A",
+    "ㅙ":"\u116B","ㅚ":"\u116C","ㅛ":"\u116D","ㅜ":"\u116E","ㅝ":"\u116F",
+    "ㅞ":"\u1170","ㅟ":"\u1171","ㅠ":"\u1172","ㅡ":"\u1173","ㅢ":"\u1174","ㅣ":"\u1175",
+    "ㆉ":"\u1188","ㆊ":"\u1191","ㆋ":"\u1192","ㆌ":"\u1194","ㆍ":"\u119E","ㆎ":"\u11A1"
+};
+const JONG_U1100 = {
+    "":"","ㄱ":"\u11A8","ㄴ":"\u11AB","ㄷ":"\u11AE","ㄹ":"\u11AF",
+    "ㅁ":"\u11B7","ㅂ":"\u11B8","ㅅ":"\u11BA","ㅇ":"\u11BC","ㆁ":"\u11F0"
+};
+
+const MODERN_FALLBACK_CHO  = { "ㅿ":"ㅅ","ㆁ":"ㅇ","ᄾ":"ㅅ","ᅐ":"ㅈ","ᅕ":"ㅊ","ᅑ":"ㅉ","ᄿ":"ㅆ" };
+const MODERN_FALLBACK_JUNG = { "ㆉ":"ㅛ","ㆊ":"ㅝ","ㆋ":"ㅞ","ㆌ":"ㅠ","ㆍ":"ㅏ","ㆎ":"ㅐ" };
+
+function sortRulesByLength(rules) {
+    return rules.slice().sort((a, b) => {
+        const la = a.target.length + (a.pre ? a.pre.length : 0) + (a.post ? a.post.length : 0);
+        const lb = b.target.length + (b.pre ? b.pre.length : 0) + (b.post ? b.post.length : 0);
+        return lb - la;
+    });
+}
+const SORTED_STAGE1 = sortRulesByLength(STAGE1_VARS);
+const SORTED_STAGE2 = sortRulesByLength(STAGE2_REWRITE);
+const SORTED_STAGE3 = sortRulesByLength(STAGE3_TRANSCRIBE);
+
+function matchRuleAtIndex(text, index, rule) {
+    if (!text.startsWith(rule.target, index)) return false;
+    if (rule.pre) {
+        const before = text.substring(0, index);
+        if (!new RegExp(rule.pre + "$", "u").test(before)) return false;
+    }
+    // eol: true → 음절 끝(열린 음절)에서만 매칭. 규칙 표기의 "є," 등에서 , 의미
+    if (rule.eol) {
+        if (index + rule.target.length !== text.length) return false;
+    }
+    if (rule.post) {
+        const after = text.substring(index + rule.target.length);
+        if (!new RegExp("^" + rule.post, "u").test(after)) return false;
+    }
+    return true;
+}
+
+function applyStageRules(text, sortedRules) {
+    let result = "", i = 0;
+    while (i < text.length) {
+        let best = null;
+        for (const rule of sortedRules) {
+            if (matchRuleAtIndex(text, i, rule)) {
+                if (!best) {
+                    best = rule;
+                } else if (rule.target.length > best.target.length) {
+                    best = rule;
+                } else if (rule.target.length === best.target.length && rule.eol && !best.eol) {
+                    // 같은 길이면 열린 음절(eol) 규칙 우선
+                    best = rule;
+                }
+            }
+        }
+        if (best) {
+            result += best.replacement;
+            i += best.target.length;
+        } else {
+            result += text[i];
+            i++;
+        }
+    }
+    return result;
+}
+
+/** rewrite는 치환 결과가 다시 규칙에 걸릴 수 있음 (예: гв→гў 후 ўє→уй)
+ *  한 번만 스캔하면 u가 빠지므로 안정될 때까지 반복 */
+function applyStageRulesIterative(text, sortedRules, maxPasses = 8) {
+    let cur = text;
+    for (let p = 0; p < maxPasses; p++) {
+        const next = applyStageRules(cur, sortedRules);
+        if (next === cur) break;
+        cur = next;
+    }
+    return cur;
+}
+
+/**
+ * 성조 기호 추출 (교육부 방식 지원)
+ * ˊ ˇ ˋ ˉ ˆ ^ + ⁺ 및 결합 성조(´ ` ˆ ˇ ̍ 등) 인식
+ * 반환: { base, tone }
+ */
+function extractTone(str) {
+    // 독립 성조 기호 (MOE 우상단 표기)
+    const standalone = /([ˊˇˋˉˆ^+⁺])/;
+    // 결합 성조 (NFD 후)
+    const combining = /[\u0300-\u036f]/;
+
+    let tone = "";
+    let base = str;
+
+    // 1) 독립 기호 우선
+    const m1 = str.match(standalone);
+    if (m1) {
+        tone = m1[1];
+        base = str.replace(standalone, "");
+    }
+
+    // 2) 결합 성조 → 독립 기호로 정규화
+    const nfd = base.normalize("NFD");
+    const comb = nfd.match(combining);
+    if (comb) {
+        const c = comb[0];
+        // 대략적 매핑
+        if (c === "\u0301" || c === "\u0341") tone = tone || "ˊ";      // acute
+        else if (c === "\u0300" || c === "\u0340") tone = tone || "ˋ"; // grave
+        else if (c === "\u030C") tone = tone || "ˇ";                 // caron
+        else if (c === "\u0302") tone = tone || "ˆ";                 // circumflex
+        else if (c === "\u0304") tone = tone || "ˉ";                 // macron
+        else if (c === "\u030B") tone = tone || "ˊ";                 // double acute
+        else if (c === "\u030D") tone = tone || "";                  // vertical line (often entering)
+        base = nfd.replace(combining, "");
+    }
+
+    // 기타 정규화
+    base = base
+        .replace(/ṳ/g, "ü")
+        .replace(/ẑ/g, "zh")
+        .replace(/ĉ/g, "ch")
+        .replace(/ŝ/g, "sh")
+        .toLowerCase();
+
+    return { base, tone };
+}
+
+/**
+ * 음절말 자음 표시.
+ * MoE 허용 종성: b d g m n ng
+ * 교회식(PFS) 종성 p t k 는 각각 b d g 로 정규화 후 표시
+ */
+function markSyllableCodas(syllable) {
+    if (!syllable) return "";
+    if (syllable === "m")  return "m,";
+    if (syllable === "n")  return "n,";
+    if (syllable === "ng") return "ng,";
+
+    if (syllable.endsWith("ng") && syllable.length > 2) {
+        return syllable.slice(0, -2) + "ng,";
+    }
+    const last = syllable.slice(-1);
+    // 교회식 받침 p/t/k → MoE b/d/g
+    if (last === "p" && syllable.length > 1) return syllable.slice(0, -1) + "b,";
+    if (last === "t" && syllable.length > 1) return syllable.slice(0, -1) + "d,";
+    if (last === "k" && syllable.length > 1) return syllable.slice(0, -1) + "g,";
+    if (["b","d","g","m","n"].includes(last) && syllable.length > 1) {
+        return syllable.slice(0, -1) + last + ",";
+    }
+    return syllable;
+}
+
+/**
+ * 객가 로마자 음절 패턴 판별.
+ * 허용 구조: СГ, СГС, Г, СПГ, СПГС, ПГ
+ * (С=초성, Г=모음핵, П=활음 i/u/y, С종성)
+ * 그 외(외국어 등) → false → 원문 유지
+ */
+function isHakkaSyllablePattern(raw) {
+    if (!raw || !raw.trim()) return false;
+    let s = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[ˊˇˋˉˆ⁺+^]/g, "")
+        .toLowerCase();
+    if (!s) return false;
+    // 허용 문자 외 포함 시 비패턴
+    if (/[^a-züṳ]/i.test(s)) return false;
+    s = s.replace(/ü/g, "u").replace(/ṳ/g, "ii");
+    // 단독 성절 자음 m / n / ng
+    if (/^(m|n|ng)$/.test(s)) return true;
+    // С = 성모 (최장 우선 나열)
+    const C = "(?:ng|ny|chh|tsh|ch|ts|zh|sh|rh|ph|th|kh|khw|kw|b|p|m|f|v|d|t|n|l|g|k|h|z|j|c|q|s|x|r|y)";
+    // П = 활음 (i/u/y 계열, 복모음 앞)
+    // Г = 모음핵 (단모음·복모음·특수)
+    // 교육부: ua/ue/ui…  교회: oa/oe 포함
+    const V = "(?:ieu|iau|ioi|ii|ee|oo|ia|io|iu|ie|ua|ue|ui|uo|oa|oe|ai|oi|au|eu|ou|ued|oet|er|a|e|i|o|u)";
+    // 종성: MoE b/d/g/m/n/ng · 교회 p/t/k
+    const F = "(?:ng|m|n|b|d|g|p|t|k)";
+    // СГС | СГ | ГС | Г  (활음은 V 쪽에 이미 포함)
+    const re = new RegExp("^(?:" + C + ")?" + V + "(?:" + F + ")?$", "i");
+    return re.test(s);
+}
+
+
+function forceSyllabicIfNoVowel(cyrText) {
+    // 앞에 모음/자음이 전혀 없는 단독 m/n/ng → 음절 자음
+    if (cyrText === "м," || cyrText === "м") return "М";
+    if (cyrText === "н," || cyrText === "н") return "Н";
+    if (cyrText === "ң," || cyrText === "ң") return "Ң";
+    return cyrText;
+}
+
+
+function composeSyllable(cho, jung, jong = "", mode = "auto") {
+    if (!jung) return cho || "";
+    let eCho = cho, eJung = jung, eJong = jong;
+    if (mode === "modern") {
+        eCho  = MODERN_FALLBACK_CHO[cho]  || cho;
+        eJung = MODERN_FALLBACK_JUNG[jung] || jung;
+    }
+    const choIdx  = MODERN_CHO.indexOf(eCho);
+    const jungIdx = MODERN_JUNG.indexOf(eJung);
+    const jongIdx = eJong ? MODERN_JONG.indexOf(eJong) : 0;
+
+    if (choIdx !== -1 && jungIdx !== -1 && jongIdx !== -1) {
+        return String.fromCharCode(0xAC00 + (choIdx * 21 + jungIdx) * 28 + jongIdx);
+    }
+    const choCode  = CHO_U1100[eCho]  || eCho;
+    const jungCode = JUNG_U1100[eJung] || eJung;
+    const jongCode = eJong ? (JONG_U1100[eJong] || eJong) : "";
+    return choCode + jungCode + jongCode;
+}
+
+/**
+ * 성조 맵 변환
+ * 사현: ˊ→"", ˇ→"", ˋ→〯, ˉ→〮
+ * 해륙: ˋ→"", ˉ→"", ˊ→〯, ˇ→〮, ⁺→〮
+ */
+function convertTone(tone, dialect = "sixian") {
+    if (!tone) return "";
+    if (dialect === "hailu") {
+        if (tone === "ˋ" || tone === "ˉ") return "";
+        if (tone === "ˊ") return "\u302F"; // 〯
+        if (tone === "ˇ" || tone === "⁺" || tone === "+") return "\u302E"; // 〮
+        if (tone === "ˆ" || tone === "^") return "\u302E";
+        return tone;
+    }
+    // 사현
+    if (tone === "ˊ" || tone === "ˇ") return "";
+    if (tone === "ˋ") return "\u302F"; // 〯
+    if (tone === "ˉ" || tone === "ˆ" || tone === "^" || tone === "⁺" || tone === "+") return "\u302E"; // 〮
+    return tone;
+}
+
+/**
+ * 성조를 한글 뒤에 반영
+ * useHangulToneMarks=true 이면 이미 변환된 방점(〮〯)을 그대로 붙임
+ */
+function attachTone(hangul, tone, useHangulToneMarks = false) {
+    if (!tone) return hangul;
+    return hangul + tone;
+}
+
+function translateSyllable(syllableRaw, mode = "auto", dialect = "sixian") {
+    if (!/[a-züˊˇˋˉˆ^+⁺]/i.test(syllableRaw) && !/[\u0300-\u036f]/.test(syllableRaw)) {
+        return { original: syllableRaw, hangul: syllableRaw, codaMarked: syllableRaw, step1: syllableRaw, step2: syllableRaw, step3: syllableRaw, tone: "", skipped: true };
+    }
+    // 객가 로마자 패턴이 아니면 원문 유지 (외국어 등)
+    if (!isHakkaSyllablePattern(syllableRaw)) {
+        return { original: syllableRaw, hangul: syllableRaw, codaMarked: "—", step1: "—", step2: "—", step3: "—", tone: "", skipped: true };
+    }
+
+    const { base, tone } = extractTone(syllableRaw);
+    let codaMarked = markSyllableCodas(base);
+
+    // Stage 1
+    let step1 = applyStageRules(codaMarked, SORTED_STAGE1);
+    step1 = forceSyllabicIfNoVowel(step1);
+
+    // Stage 2 (반복 적용: гв→гў 후 ўє→уй 등 연쇄 규칙)
+    let step2Raw = applyStageRulesIterative(step1, SORTED_STAGE2);
+    const step2 = step2Raw.replace(/;/g, "");
+
+    // Stage 3 – 구조적 파싱 (onset → vowel → coda)
+    // 모음 뒤에 나오는 일반 자음이 초성을 덮어쓰지 않도록 함
+    let cho = "", jung = "", jong = "", step3Str = "";
+    let i = 0;
+    let phase = "onset"; // onset → vowel → coda
+
+    while (i < step2.length) {
+        let best = null;
+        for (const rule of SORTED_STAGE3) {
+            if (step2.startsWith(rule.target, i)) {
+                if (!best || rule.target.length > best.target.length) best = rule;
+            }
+        }
+        if (!best) {
+            step3Str += step2[i];
+            i++;
+            continue;
+        }
+
+        if (best.type === "syllabic") {
+            step3Str += best.hangul;
+            i += best.target.length;
+            continue;
+        }
+
+        if (phase === "onset") {
+            if (best.type === "onset" && !cho) {
+                cho = best.hangul;
+                step3Str += best.hangul;
+                i += best.target.length;
+                // 초성 확정 후 모음 대기
+            } else if (best.type === "vowel") {
+                jung = best.hangul;
+                step3Str += best.hangul;
+                i += best.target.length;
+                phase = "coda";
+            } else if (best.type === "coda") {
+                jong = best.hangul;
+                step3Str += best.hangul;
+                i += best.target.length;
+                phase = "done";
+            } else if (best.type === "onset" && cho) {
+                // 이미 초성이 있는데 또 onset → 무시 (덮어쓰기 방지)
+                i += best.target.length;
+            } else {
+                i += best.target.length;
+            }
+        } else if (phase === "coda") {
+            if (best.type === "coda" && !jong) {
+                jong = best.hangul;
+                step3Str += best.hangul;
+                i += best.target.length;
+                phase = "done";
+            } else if (best.type === "onset" || best.type === "vowel") {
+                // ★ 핵심: 모음 뒤 일반 자음이 초성/중성을 덮지 않음
+                // sat → с а т, bul → б у л 에서 뒤 자음이 cho를 덮던 오류 수정
+                i += best.target.length;
+            } else {
+                i += best.target.length;
+            }
+        } else {
+            i += best.target.length;
+        }
+    }
+
+    if (!cho && jung) cho = "ㅇ";
+
+    // Fortis (경음) 적용 – 방언별
+    cho = applyFortis(cho, step2, tone, jong, dialect);
+
+    let hangul = "";
+    if (cho && jung) {
+        hangul = composeSyllable(cho, jung, jong, mode);
+    } else if (step3Str) {
+        hangul = step3Str;
+    } else {
+        hangul = base || syllableRaw;
+    }
+
+    // 성조 변환 (방언 맵 적용) 후 부착
+    const convertedTone = convertTone(tone, dialect);
+    hangul = attachTone(hangul, convertedTone, true);
+
+    return { original: syllableRaw, codaMarked, step1, step2, step3: step3Str, hangul, tone: convertedTone || tone };
+}
+
+/**
+ * 경음화 (fortis) 적용 – 방언별
+ * 사현: ˇ+(개방/비음) 또는 ˉ+(입성)
+ * 해륙: (ˉ|⁺)+(개방/비음) 또는 ˋ+(입성)
+ */
+function applyFortis(cho, step2, tone, jong, dialect = "sixian") {
+    if (!cho || !tone) return cho;
+    const isOpenOrNasal = !jong || ["ㅁ","ㄴ","ㅇ","ㆁ"].includes(jong);
+    const isStopCoda   = ["ㅂ","ㄹ","ㄱ"].includes(jong);
+
+    let doFortis = false;
+    if (dialect === "hailu") {
+        doFortis =
+            ((tone === "ˉ" || tone === "⁺" || tone === "+") && isOpenOrNasal) ||
+            (tone === "ˋ" && isStopCoda);
+    } else {
+        // 사현
+        doFortis =
+            (tone === "ˇ" && isOpenOrNasal) ||
+            (tone === "ˉ" && isStopCoda);
+    }
+    if (!doFortis) return cho;
+
+    const fortisMap = {
+        "ㅍ": "ㅃ", "ㅌ": "ㄸ", "ㅋ": "ㄲ",
+        "ㅊ": "ㅉ", "ㅅ": "ㅆ",
+        "ᅕ": "ᅑ", "ᄾ": "ᄿ"
+    };
+    return fortisMap[cho] || cho;
+}
+
+
+
+function processFullText(inputText, mode = "auto", dialect = "sixian") {
+    if (!inputText) return { hangulText: "", details: [], segments: [] };
+    // 구분자: 공백·문장부호·하이픈·PFS 붙임(\u2060). 하이픈/붙임은 출력에서 제거
+    const tokens = inputText.split(/([-\s.,!?()0-9\u2060]+)/);
+    let hangulResult = "";
+    const details = [];
+    const segments = [];
+    for (const token of tokens) {
+        if (!token) continue;
+        if (/^[\u2060]+$/.test(token)) {
+            // 교회식 하이픈 → 음절 붙여 쓰기
+            continue;
+        }
+        if (/^[-\s.,!?()0-9]+$/.test(token)) {
+            // 남은 하이픈은 출력하지 않음
+            const cleaned = token.replace(/-/g, "");
+            if (!cleaned) continue;
+            hangulResult += cleaned;
+            segments.push({ type: "text", text: cleaned });
+        } else {
+            const res = translateSyllable(token, mode, dialect);
+            hangulResult += res.hangul;
+            const idx = details.length;
+            details.push(res);
+            segments.push({ type: "syl", hangul: res.hangul, detailIndex: idx, skipped: !!res.skipped });
+        }
+    }
+    return { hangulText: hangulResult, details, segments };
+}
+
+/** 교회식(PFS) 특징 자동 감지 */
+function detectPfs(text) {
+    if (!text || !text.trim()) return false;
+    // 결합 성조(â ê î ô û ṳ 등), chh/tsh, 음절 하이픈, ṳ
+    if (/[âêîôûäëïöüÂÊÎÔÛÄËÏÖÜàèìòùáéíóúāēīōūǎěǐǒǔ]/u.test(text)) return true;
+    if (/ṳ|chh|tsh|ny[^a-z]|khw/i.test(text)) return true;
+    // 단어 내부 하이픈으로 음절 연결 (thai-kâ)
+    if (/[a-zü]{1,6}-[a-zü]/i.test(text.normalize("NFD").replace(/[\u0300-\u036f]/g,""))) return true;
+    // PFS 종성 p/t/k 가 많고 MoE 성조 기호가 거의 없으면
+    const hasMoeTone = /[ˊˇˋˉ⁺]/.test(text);
+    const hasPtkCoda = /[aeiou][ptk]\b/i.test(text) || /[aeiou][ptk]$/i.test(text.trim());
+    if (hasPtkCoda && !hasMoeTone) return true;
+    return false;
+}
+
+/* ===== Church (Pha̍k-fa-sṳ) → MoE conversion ===== */
+const TONE_MARKS_NFD = {
+  FIRST: '\u030A', RISING: '\u0302', DIPPING: '\u0300', FALLING: '\u0301', EIGHTH: '\u030D'
+};
+const charMappingsFwd = new Map([
+  ['yi','i'],['ṳ','ii'],['chhi','qi'],['tshi','qi'],['chi','ji'],['tsi','ji'],
+  ['chh','c'],['tsh','c'],['khw','k'],['kw','g'],['sh','s'],['si','xi'],['s','s'],
+  ['ph','p'],['th','t'],['kh','k'],['ng','ng'],['ny','ngi'],['ch','z'],['ts','z'],
+  ['er','er'],['oet','ued'],
+  // 교회 o[a|e] = 교육부 u[a|e]
+  ['oa','ua'],['oe','ue'],
+  ['p','b'],['t','d'],['k','g'],['m','m'],['f','f'],
+  ['v','v'],['n','n'],['l','l'],['h','h'],['y','i'],['a','a'],['i','i'],['u','u'],['e','e'],['o','o']
+].sort((a,b)=>b[0].length-a[0].length));
+const charMappingsRev = new Map([
+  ['y','y'],
+  ['ii','ṳ'],['qi','chhi'],['ji','chi'],['c','chh'],['xi','si'],['s','s'],
+  ['p','ph'],['t','th'],['k','kh'],['ng','ng'],['z','ch'],['er','er'],['ued','oet'],
+  ['b','p'],['d','t'],['g','k'],['m','m'],['n','n'],['l','l'],['h','h'],['f','f'],
+  ['v','v'],['a','a'],['i','i'],['u','u'],['e','e'],['o','o']
+].sort((a,b)=>b[0].length-a[0].length));
+const finalConsFwd = new Map([['p','b'],['t','d'],['k','g'],['m','m'],['n','n'],['ng','ng']]);
+const finalConsRev = new Map([['b','p'],['d','t'],['g','k'],['m','m'],['n','n'],['ng','ng']]);
+const toneMarkMapPfs = new Map([
+  [TONE_MARKS_NFD.RISING,'ˊ'],[TONE_MARKS_NFD.DIPPING,'ˇ'],[TONE_MARKS_NFD.FALLING,'ˋ'],
+  [TONE_MARKS_NFD.FIRST,'ˉ'],[TONE_MARKS_NFD.EIGHTH,'ˉ']
+]);
+function placeToneMarkPfs(syllable, toneMark) {
+  if (!toneMark) return syllable;
+  let s = syllable.normalize('NFD').replace(/[\u0300-\u036F]/g,'').normalize('NFC');
+  const exceptions = [
+    {ending:'oai',placement:'a'},{ending:'oan',placement:'a'},{ending:'oat',placement:'a'},
+    {ending:'oah',placement:'a'},{ending:'oeh',placement:'e'}
+  ];
+  for (const ex of exceptions) {
+    if (s.includes(ex.ending)) return s.replace(ex.placement, ex.placement + toneMark);
+  }
+  for (const v of ['o','e','a','ṳ','u','i']) {
+    if (s.includes(v)) {
+      const i = s.lastIndexOf(v);
+      return s.slice(0,i+1) + toneMark + s.slice(i+1);
+    }
+  }
+  return s + toneMark;
+}
+function processSyllablePfsToMoe(syllable) {
+  const cap = syllable.length && syllable[0]===syllable[0].toUpperCase() && syllable[0]!==syllable[0].toLowerCase();
+  const nfd = syllable.normalize('NFD');
+  let extracted='', has=false, is5=false, is1=false, base=nfd;
+  for (const [name,val] of Object.entries(TONE_MARKS_NFD)) {
+    if (nfd.includes(val)) {
+      has=true; base=nfd.replace(val,'');
+      if (name==='EIGHTH') is5=true; else if (name==='FIRST') is1=true;
+      else extracted = toneMarkMapPfs.get(val)||'';
+      break;
+    }
+  }
+  // MoE 단독 성조 기호도 허용
+  const standalone = base.match(/[ˊˇˋˉˆ⁺+]/);
+  if (standalone) {
+    extracted = extracted || standalone[0];
+    has = true;
+    base = base.replace(/[ˊˇˋˉˆ⁺+]/g, '');
+  }
+  let converted='';
+  let i=0;
+  const lower = base.normalize('NFC').toLowerCase();
+  while (i<lower.length) {
+    let matched=false;
+    for (const [hak,tai] of charMappingsFwd) {
+      if (lower.startsWith(hak,i)) { converted+=tai; i+=hak.length; matched=true; break; }
+    }
+    if (!matched) {
+      converted += lower[i];
+      i++;
+    }
+  }
+  let finalC='';
+  const ends=[...finalConsFwd.keys()].sort((a,b)=>b.length-a.length);
+  for (const e of ends) {
+    if (converted.endsWith(e)) { finalC=finalConsFwd.get(e); converted=converted.slice(0,-e.length); break; }
+  }
+  converted+=finalC;
+  let tone='';
+  const plosive = /[ptk]$/.test(base.normalize('NFC'));
+  if (is1||is5) tone='';
+  else if (!has) tone = plosive ? 'ˋ' : '';
+  else tone=extracted;
+  converted+=tone;
+  if (cap && converted.length) converted=converted[0].toUpperCase()+converted.slice(1);
+  return converted;
+}
+// 하이픈으로 이어진 음절을 붙일 때 쓰는 비가시 구분자 (출력에는 안 보임)
+const PFS_JOIN = '\u2060'; // WORD JOINER
+
+function pfsLineToMoe(line) {
+  if (!line.trim()) return '';
+  const parts=[];
+  let last=0;
+  for (const m of line.matchAll(/[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\u0300-\u036Fˊˇˋˉˆ⁺+\-]+/g)) {
+    if (m.index>last) parts.push({t:'text',c:line.slice(last,m.index)});
+    parts.push({t:'seq',c:m[0]});
+    last=m.index+m[0].length;
+  }
+  if (last<line.length) parts.push({t:'text',c:line.slice(last)});
+  let out='';
+  for (const p of parts) {
+    if (p.t==='text') out+=p.c;
+    else {
+      // PFS "-" → 붙임(비가시 구분자). 공백은 단어 경계로 유지
+      const syls = p.c.split('-').filter(Boolean);
+      out += syls.map(s => {
+        if (!isHakkaSyllablePattern(s)) return s; // 외국어 등 원문 유지
+        return processSyllablePfsToMoe(s);
+      }).join(PFS_JOIN);
+    }
+  }
+  return out;
+}
+
+function getInputScheme() {
+  return document.querySelector('input[name="inputScheme"]:checked')?.value || 'auto';
+}
+
+function onSchemeChange() {
+  const scheme = getInputScheme();
+  const moeEx = document.getElementById('examples-moe');
+  const pfsEx = document.getElementById('examples-pfs');
+  const inter = document.getElementById('moe-intermediate');
+  const ta = document.getElementById('input-rom');
+  const label = document.getElementById('scheme-detect-label');
+  if (scheme === 'pfs') {
+    moeEx.classList.add('hidden');
+    pfsEx.classList.remove('hidden');
+    inter.classList.remove('hidden');
+    if (label) label.textContent = '수동: 교회 로마자(Pha̍k-fa-sṳ)로 처리합니다.';
+    if (ta) ta.placeholder = '교회 로마자(PFS) 예: thai-kâ ho / ngài oi ngî / chhóng-sṳ';
+  } else if (scheme === 'moe') {
+    moeEx.classList.remove('hidden');
+    pfsEx.classList.add('hidden');
+    inter.classList.add('hidden');
+    if (label) label.textContent = '수동: 교육부 로마자(MoE)로 처리합니다.';
+    if (ta) ta.placeholder = '교육부 로마자 예: taiˋ gaˊ hoˊ / ngaiˋ oiˊ ngiˊ / tiamˇ banˋ';
+  } else {
+    // auto
+    moeEx.classList.remove('hidden');
+    pfsEx.classList.remove('hidden');
+    inter.classList.remove('hidden');
+    if (label) label.textContent = '자동: 교회식 특징(â, chh, 하이픈, p/t/k 받침 등)을 감지합니다.';
+    if (ta) ta.placeholder = '교육부 또는 교회 로마자 입력 · 자동 감지';
+  }
+  handleInput();
+}
+
+// UI
+let lastDetails = [];
+
+function buildHoverTipHtml(item) {
+    if (!item) return "";
+    if (item.skipped) {
+        return `<div class="tip-hangul">${escapeHtml(item.hangul)}</div>
+            <div class="tip-row"><span class="tip-k">원본</span><span class="tip-v">${escapeHtml(item.original)}</span></div>
+            <div class="tip-row"><span class="tip-k">상태</span><span class="tip-v">패턴 외 → 원문 유지</span></div>`;
+    }
+    return `<div class="tip-hangul">${escapeHtml(item.hangul)}</div>
+        <div class="tip-row"><span class="tip-k">원본</span><span class="tip-v">${escapeHtml(item.original)}</span></div>
+        <div class="tip-row"><span class="tip-k">성조</span><span class="tip-v">${escapeHtml(item.tone || "—")}</span></div>
+        <div class="tip-row"><span class="tip-k">종성</span><span class="tip-v">${escapeHtml(item.codaMarked || "—")}</span></div>
+        <div class="tip-row"><span class="tip-k">vars</span><span class="tip-v">${escapeHtml(item.step1 || "—")}</span></div>
+        <div class="tip-row"><span class="tip-k">rewrite</span><span class="tip-v">${escapeHtml(item.step2 || "—")}</span></div>
+        <div class="tip-row"><span class="tip-k">자모</span><span class="tip-v">${escapeHtml(item.step3 || "—")}</span></div>`;
+}
+
+function handleInput() {
+    const inputVal = document.getElementById("input-rom").value;
+    document.getElementById("input-char-count").innerText = `${inputVal.length}자`;
+    const mode = document.querySelector('input[name="displayMode"]:checked')?.value || "auto";
+    const dialect = document.querySelector('input[name="dialect"]:checked')?.value || "sixian";
+    let scheme = getInputScheme();
+
+    let effectiveScheme = scheme;
+    if (scheme === 'auto') {
+        effectiveScheme = detectPfs(inputVal) ? 'pfs' : 'moe';
+        const label = document.getElementById('scheme-detect-label');
+        if (label && inputVal.trim()) {
+            label.textContent = effectiveScheme === 'pfs'
+                ? '자동 감지: 교회 로마자(PFS)로 처리 중'
+                : '자동 감지: 교육부 로마자(MoE)로 처리 중';
+        } else if (label) {
+            label.textContent = '자동: 교회식 특징(â, chh, 하이픈, p/t/k 받침 등)을 감지합니다.';
+        }
+    }
+
+    let moeText = inputVal;
+    const interWrap = document.getElementById('moe-intermediate');
+    const interEl = document.getElementById('moe-intermediate-text');
+    if (effectiveScheme === 'pfs' && inputVal.trim()) {
+        moeText = pfsLineToMoe(inputVal);
+        // 중간 변환 표시: 비가시 구분자 제거, 붙여 쓴 형태
+        if (interEl) interEl.textContent = moeText.replace(/\u2060/g, '');
+        if (interWrap) interWrap.classList.remove('hidden');
+    } else {
+        if (interEl) interEl.textContent = '';
+        if (interWrap && scheme === 'moe') interWrap.classList.add('hidden');
+        else if (interWrap && scheme === 'auto') interWrap.classList.add('hidden');
+    }
+
+    const { hangulText, details, segments } = processFullText(moeText, mode, dialect);
+    lastDetails = details;
+    const outputEl = document.getElementById("output-hangul");
+    if (inputVal.trim().length === 0) {
+        outputEl.innerHTML = `<span class="text-slate-400 font-sans text-base font-normal italic">입력란에 객가어 로마자를 입력하시면 여기에 한글 변환 결과가 실시간으로 표시됩니다.</span>`;
+    } else {
+        // 호버 1초 → 고정 위치 팝업 (출력영역 overflow에 잘리지 않음)
+        let html = "";
+        for (const seg of segments) {
+            if (seg.type === "text") {
+                html += escapeHtml(seg.text);
+            } else {
+                const skippedCls = seg.skipped ? " opacity-70" : "";
+                html += `<span class="syl-unit${skippedCls}" data-idx="${seg.detailIndex}">${escapeHtml(seg.hangul)}</span>`;
+            }
+        }
+        outputEl.innerHTML = html;
+        bindHoverTips(outputEl);
+    }
+}
+
+/** 1초 올려놓으면 뷰포트(fixed) 팝업 — 출력영역 overflow에 잘리지 않음 */
+function bindHoverTips(container) {
+    const tip = document.getElementById("float-tip");
+    const tipBody = document.getElementById("float-tip-body");
+    if (!tip || !tipBody) return;
+    // body 직속으로 두어 stacking/overflow 영향 제거
+    if (tip.parentElement !== document.body) document.body.appendChild(tip);
+
+    let timer = null;
+    let activeEl = null;
+
+    function hideTip() {
+        clearTimeout(timer);
+        timer = null;
+        tip.classList.remove("tip-visible", "tip-above", "tip-below");
+        if (activeEl) { activeEl.classList.remove("tip-active"); activeEl = null; }
+    }
+
+    function positionTip(el) {
+        const rect = el.getBoundingClientRect();
+        const margin = 8;
+        tip.classList.add("tip-visible");
+        // 내용 반영 후 크기 측정
+        const tw = tip.offsetWidth || 220;
+        const th = tip.offsetHeight || 120;
+        let left = rect.left + rect.width / 2 - tw / 2;
+        left = Math.max(margin, Math.min(left, window.innerWidth - tw - margin));
+        const spaceAbove = rect.top;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        let top, place;
+        if (spaceAbove >= th + 14 && spaceAbove >= spaceBelow) {
+            top = rect.top - th - 12;
+            place = "above";
+        } else {
+            top = rect.bottom + 12;
+            place = "below";
+        }
+        top = Math.max(margin, Math.min(top, window.innerHeight - th - margin));
+        tip.style.left = left + "px";
+        tip.style.top = top + "px";
+        tip.classList.remove("tip-above", "tip-below");
+        tip.classList.add(place === "above" ? "tip-above" : "tip-below");
+        const arrowX = rect.left + rect.width / 2 - left;
+        tip.style.setProperty("--arrow-x", Math.max(14, Math.min(arrowX, tw - 14)) + "px");
+    }
+
+    container.querySelectorAll(".syl-unit").forEach(el => {
+        el.addEventListener("mouseenter", () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const idx = +el.dataset.idx;
+                const item = lastDetails[idx];
+                if (!item) return;
+                tipBody.innerHTML = buildHoverTipHtml(item);
+                if (activeEl) activeEl.classList.remove("tip-active");
+                activeEl = el;
+                el.classList.add("tip-active");
+                positionTip(el);
+            }, 1000);
+        });
+        el.addEventListener("mouseleave", hideTip);
+    });
+    container.addEventListener("scroll", hideTip, { passive: true });
+    window._hakkaHideTip = hideTip;
+    if (!window._hakkaTipScrollBound) {
+        const proxy = () => { if (window._hakkaHideTip) window._hakkaHideTip(); };
+        window.addEventListener("scroll", proxy, true);
+        window.addEventListener("resize", proxy);
+        window._hakkaTipScrollBound = true;
+    }
+}
+
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function handleModeChange() { handleInput(); }
+
+function insertTone(mark) {
+    const ta = document.getElementById("input-rom");
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const val = ta.value;
+    ta.value = val.slice(0, start) + mark + val.slice(end);
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = start + mark.length;
+    handleInput();
+}
+
+function setSample(text) {
+    document.getElementById("input-rom").value = text;
+    handleInput();
+}
+function clearInput() {
+    document.getElementById("input-rom").value = "";
+    handleInput();
+}
+
+
+function copyOutput() {
+    const outputEl = document.getElementById("output-hangul");
+    const textToCopy = outputEl.innerText;
+    if (!textToCopy || textToCopy.includes("입력란에 객가어 로마자를 입력하시면")) return;
+    const ta = document.createElement("textarea");
+    ta.value = textToCopy;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand("copy");
+        const btn = document.getElementById("btn-copy");
+        const txt = document.getElementById("copy-text");
+        btn.classList.remove("bg-hakka-indigo", "hover:bg-[#2a4a6b]");
+        btn.classList.add("bg-emerald-600", "hover:bg-emerald-700");
+        txt.innerText = "복사됨!";
+        setTimeout(() => {
+            btn.classList.remove("bg-emerald-600", "hover:bg-emerald-700");
+            btn.classList.add("bg-hakka-indigo", "hover:bg-[#2a4a6b]");
+            txt.innerText = "복사";
+        }, 2000);
+    } catch (e) { console.error(e); }
+    finally { document.body.removeChild(ta); }
+}
+
+function toggleModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.toggle("hidden");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("input-rom").addEventListener("input", handleInput);
+    setSample("taiˋ gaˊ hoˊ");
+});
+
+</script>
+</body>
+</html>
