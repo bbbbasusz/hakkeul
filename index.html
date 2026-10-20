@@ -1019,8 +1019,9 @@ function processFullText(inputText, mode = "auto", dialect = "sixian") {
             continue;
         }
         if (/^[-\s.,!?()0-9]+$/.test(token)) {
-            // 남은 하이픈·공백은 출력하지 않음 (음절 사이 빈칸 두지 않음). 문장부호·숫자는 유지
-            const cleaned = token.replace(/[-\s]/g, "");
+            // 하이픈·일반 공백(U+0020)은 제거 (음절 사이 빈칸 두지 않음).
+            // \t · \n 은 출력 유지. 문장부호·숫자는 유지
+            const cleaned = token.replace(/[- ]/g, "");
             if (!cleaned) continue;
             hangulResult += cleaned;
             segments.push({ type: "text", text: cleaned });
